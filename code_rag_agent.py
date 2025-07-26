@@ -82,12 +82,35 @@ def build_vector_db(project_dirs):
 # --- RAG AGENT ---
 def make_rag_agent(vector_db):
     llm = LlamaCpp(model_path=LLM_MODEL_PATH)
-    def rag_tool(query):
+
+    # Tool: Retrieve relevant code/AST/relationships
+    def retrieve_tool(query):
         docs = vector_db.similarity_search(query, k=5)
+        return docs
+
+    # Tool: Summarize retrieved context
+    def summarize_tool(docs):
         context = "\n".join([d.page_content for d in docs])
-        return llm(f"Context:\n{context}\n\nQuestion: {query}\nAnswer:")
+        return llm(f"Summarize the following code and metadata for high-level understanding.\n{context}\nSummary:")
+
+    # Tool: Answer question using context
+    def answer_tool(args):
+        docs, question = args
+        context = "\n".join([d.page_content for d in docs])
+        return llm(f"Context:\n{context}\n\nQuestion: {question}\nAnswer:")
+
+    # StateGraph with multiple nodes and flows
     graph = StateGraph()
-    graph.add_node(ToolNode("RAG", rag_tool))
+    graph.add_node(ToolNode("Retrieve", retrieve_tool))
+    graph.add_node(ToolNode("Summarize", summarize_tool))
+    graph.add_node(ToolNode("Answer", answer_tool))
+
+    # Define flows: Retrieve -> Summarize, Retrieve -> Answer
+    graph.add_edge("Retrieve", "Summarize")
+    graph.add_edge("Retrieve", "Answer")
+
+    # Optionally, you can define a start node and a way to run multi-step flows
+    graph.set_entry_point("Retrieve")
     return graph
 
 # --- EXAMPLE USAGE ---
@@ -96,13 +119,19 @@ if __name__ == "__main__":
     project_dirs = ["./projects"]  # Add your project root(s) here
     vector_db = build_vector_db(project_dirs)
 
-    # 2. Create RAG agent
+    # 2. Create enhanced agentic RAG agent
     rag_agent = make_rag_agent(vector_db)
 
-    # 3. Ask a question
+    # 3. Ask a question and get retrieval, summary, and answer
     question = "Which domain does the project 'my_project' fall under?"
-    answer = rag_agent.run("RAG", question)
-    print("Answer:", answer)
+    # Step 1: Retrieve relevant docs
+    docs = rag_agent.run("Retrieve", question)
+    # Step 2: Summarize context
+    summary = rag_agent.run("Summarize", docs)
+    # Step 3: Answer question using context
+    answer = rag_agent.run("Answer", (docs, question))
+    print("Summary:\n", summary)
+    print("Answer:\n", answer)
 
 """
 Notes:
