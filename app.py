@@ -39,17 +39,18 @@ def get_agent():
     return rag_agent
 
 rag_agent = get_agent()
+rag_app = rag_agent.compile()
 
 # User query input
 query = st.text_area("Ask a question about your codebase:", "Which domain does the project 'my_project' fall under?")
 
 if st.button("Run Agent"):
     with st.spinner("Retrieving relevant code and metadata..."):
-        docs = rag_agent.run("Retrieve", query)
+        docs = rag_app("Retrieve", query)
     with st.spinner("Summarizing context..."):
-        summary = rag_agent.run("Summarize", docs)
+        summary = rag_app("Summarize", docs)
     with st.spinner("Generating answer..."):
-        answer = rag_agent.run("Answer", (docs, query))
+        answer = rag_app("Answer", (docs, query))
     st.subheader("Summary")
     st.code(summary)
     st.subheader("Answer")
