@@ -20,13 +20,14 @@ from tqdm import tqdm
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.schema import Document
-from langchain.llms import LlamaCpp  # Example: local LLM
+from langchain.llms import OpenAI
 from langgraph.graph import StateGraph
 
 # --- CONFIG ---
 VECTOR_DB_DIR = "./vector_db"
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"  # Default HuggingFace model
-LLM_MODEL_PATH = "./llama-2-7b.Q4_K_M.gguf"  # Path to local LLM
+LMSTUDIO_API_BASE = "http://localhost:1234/v1"  # LM Studio OpenAI-compatible endpoint
+LMSTUDIO_API_KEY = "lm-studio"  # Any string, LM Studio ignores it
 
 # --- AGENTIC CODE WALKER ---
 def walk_git_projects(root_dirs):
@@ -80,8 +81,14 @@ def build_vector_db(project_dirs):
     return vector_db
 
 # --- RAG AGENT ---
+
 def make_rag_agent(vector_db):
-    llm = LlamaCpp(model_path=LLM_MODEL_PATH)
+    llm = OpenAI(
+        openai_api_base=LMSTUDIO_API_BASE,
+        openai_api_key=LMSTUDIO_API_KEY,
+        temperature=0.2,
+        model_name="tinylama-1.1b-chat-v1.0"  # or the model name you loaded in LM Studio
+    )
 
     # Tool: Retrieve relevant code/AST/relationships
     def retrieve_tool(query):
