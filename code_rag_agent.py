@@ -129,15 +129,16 @@ if __name__ == "__main__":
 
     # 2. Create enhanced agentic RAG agent
     rag_agent = make_rag_agent(vector_db)
+    rag_app = rag_agent.compile()
 
     # 3. Ask a question and get retrieval, summary, and answer
     question = "Which domain does the project 'my_project' fall under?"
     # Step 1: Retrieve relevant docs
-    docs = rag_agent.run("Retrieve", question)
+    docs = rag_app("Retrieve", question)
     # Step 2: Summarize context
-    summary = rag_agent.run("Summarize", docs)
+    summary = rag_app("Summarize", docs)
     # Step 3: Answer question using context
-    answer = rag_agent.run("Answer", (docs, question))
+    answer = rag_app("Answer", (docs, question))
     print("Summary:\n", summary)
     print("Answer:\n", answer)
 
