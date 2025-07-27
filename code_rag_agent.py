@@ -21,7 +21,7 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.schema import Document
 from langchain.llms import LlamaCpp  # Example: local LLM
-from langgraph.graph import StateGraph, ToolNode
+from langgraph.graph import StateGraph
 
 # --- CONFIG ---
 VECTOR_DB_DIR = "./vector_db"
@@ -100,10 +100,11 @@ def make_rag_agent(vector_db):
         return llm(f"Context:\n{context}\n\nQuestion: {question}\nAnswer:")
 
     # StateGraph with multiple nodes and flows
+
     graph = StateGraph()
-    graph.add_node(ToolNode("Retrieve", retrieve_tool))
-    graph.add_node(ToolNode("Summarize", summarize_tool))
-    graph.add_node(ToolNode("Answer", answer_tool))
+    graph.add_node("Retrieve", retrieve_tool)
+    graph.add_node("Summarize", summarize_tool)
+    graph.add_node("Answer", answer_tool)
 
     # Define flows: Retrieve -> Summarize, Retrieve -> Answer
     graph.add_edge("Retrieve", "Summarize")
