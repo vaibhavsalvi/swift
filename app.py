@@ -13,14 +13,22 @@ project_dirs = st.sidebar.text_input(
 )
 project_dirs = [d.strip() for d in project_dirs.split(",") if d.strip()]
 
-# Optionally, allow folder upload (for zipped codebases)
+# Optionally, allow folder upload (for zipped codebases) or single Python file
 uploaded_zip = st.sidebar.file_uploader("Or upload a zipped codebase", type=["zip"])
-import zipfile, tempfile, os
+uploaded_py = st.sidebar.file_uploader("Or upload a single Python file", type=["py"])
+import zipfile, tempfile, os, shutil
 if uploaded_zip is not None:
     temp_dir = tempfile.mkdtemp()
     with zipfile.ZipFile(uploaded_zip, 'r') as zip_ref:
         zip_ref.extractall(temp_dir)
     st.sidebar.success(f"Uploaded and extracted to {temp_dir}")
+    project_dirs.append(temp_dir)
+elif uploaded_py is not None:
+    temp_dir = tempfile.mkdtemp()
+    py_path = os.path.join(temp_dir, uploaded_py.name)
+    with open(py_path, "wb") as f:
+        f.write(uploaded_py.read())
+    st.sidebar.success(f"Uploaded Python file to {py_path}")
     project_dirs.append(temp_dir)
 
 # Build vector DB and agent (cache for performance)
