@@ -17,7 +17,7 @@ import os
 import ast
 import git
 from tqdm import tqdm
-from langchain.embeddings import Code2VecEmbeddings  # or Code2Embed if available
+from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.schema import Document
 from langchain.llms import LlamaCpp  # Example: local LLM
@@ -25,7 +25,7 @@ from langgraph.graph import StateGraph, ToolNode
 
 # --- CONFIG ---
 VECTOR_DB_DIR = "./vector_db"
-EMBEDDING_MODEL_PATH = "./code2embed-model"  # Path to local embedding model
+EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"  # Default HuggingFace model
 LLM_MODEL_PATH = "./llama-2-7b.Q4_K_M.gguf"  # Path to local LLM
 
 # --- AGENTIC CODE WALKER ---
@@ -70,8 +70,8 @@ def vectorize_and_store(project, file_path, code, ast_info, relationships, vecto
 
 # --- MAIN PIPELINE ---
 def build_vector_db(project_dirs):
-    # Use Code2VecEmbeddings or Code2Embed (replace as needed)
-    embedder = Code2VecEmbeddings(model_path=EMBEDDING_MODEL_PATH)
+    # Use HuggingFaceEmbeddings for code/text
+    embedder = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
     vector_db = Chroma(persist_directory=VECTOR_DB_DIR, embedding_function=embedder)
     for project, file_path in tqdm(list(walk_git_projects(project_dirs)), desc="Indexing projects"):
         ast_info, relationships, code = extract_ast_info(file_path)
