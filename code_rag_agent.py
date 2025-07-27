@@ -108,7 +108,7 @@ def make_rag_agent(vector_db):
 
     # StateGraph with multiple nodes and flows
 
-    graph = StateGraph()
+    graph = StateGraph(dict)
     graph.add_node("Retrieve", retrieve_tool)
     graph.add_node("Summarize", summarize_tool)
     graph.add_node("Answer", answer_tool)

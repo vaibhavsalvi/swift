@@ -4,12 +4,24 @@ from code_rag_agent import build_vector_db, make_rag_agent
 st.set_page_config(page_title="Codebase RAG Agent", layout="wide")
 st.title("Codebase RAG Agent (LangChain + LangGraph)")
 
-# Sidebar: Project directory selection
-project_dirs = st.sidebar.text_area(
+
+# Sidebar: Project directory selection (with folder picker)
+st.sidebar.markdown("### Select your project root folder(s)")
+project_dirs = st.sidebar.text_input(
     "Enter project root directories (comma-separated):",
     value="./projects"
 )
 project_dirs = [d.strip() for d in project_dirs.split(",") if d.strip()]
+
+# Optionally, allow folder upload (for zipped codebases)
+uploaded_zip = st.sidebar.file_uploader("Or upload a zipped codebase", type=["zip"])
+import zipfile, tempfile, os
+if uploaded_zip is not None:
+    temp_dir = tempfile.mkdtemp()
+    with zipfile.ZipFile(uploaded_zip, 'r') as zip_ref:
+        zip_ref.extractall(temp_dir)
+    st.sidebar.success(f"Uploaded and extracted to {temp_dir}")
+    project_dirs.append(temp_dir)
 
 # Build vector DB and agent (cache for performance)
 @st.cache_resource(show_spinner=True)
