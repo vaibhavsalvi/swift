@@ -31,31 +31,42 @@ elif uploaded_py is not None:
     st.sidebar.success(f"Uploaded Python file to {py_path}")
     project_dirs.append(temp_dir)
 
-# Build vector DB and agent (cache for performance)
-@st.cache_resource(show_spinner=True)
-def get_agent():
-    vector_db = build_vector_db(project_dirs)
-    rag_agent = make_rag_agent(vector_db)
-    return rag_agent
 
-rag_agent = get_agent()
-rag_app = rag_agent.compile()
+# Build vector DB and agent only after user clicks 'Build Index'
+if 'rag_agent' not in st.session_state:
+    st.session_state['rag_agent'] = None
+    st.session_state['rag_app'] = None
+    st.session_state['vector_db_ready'] = False
+
+if st.button("Build Index"):
+    with st.spinner("Building vector database and agent..."):
+        vector_db = build_vector_db(project_dirs)
+        rag_agent = make_rag_agent(vector_db)
+        rag_app = rag_agent.compile()
+        st.session_state['rag_agent'] = rag_agent
+        st.session_state['rag_app'] = rag_app
+        st.session_state['vector_db_ready'] = True
+
+rag_app = st.session_state.get('rag_app', None)
 
 # User query input
 query = st.text_area("Ask a question about your codebase:", "Which domain does the project 'my_project' fall under?")
 
-if st.button("Run Agent"):
-    with st.spinner("Retrieving relevant code and metadata..."):
-        docs = rag_app("Retrieve", query)
-    with st.spinner("Summarizing context..."):
-        summary = rag_app("Summarize", docs)
-    with st.spinner("Generating answer..."):
-        answer = rag_app("Answer", (docs, query))
-    st.subheader("Summary")
-    st.code(summary)
-    st.subheader("Answer")
-    st.success(answer)
-    st.subheader("Retrieved Documents")
-    for i, doc in enumerate(docs, 1):
-        st.markdown(f"**Doc {i} ({doc.metadata.get('type')})**")
-        st.code(doc.page_content[:1000])
+if rag_app and st.session_state['vector_db_ready']:
+    if st.button("Run Agent"):
+        with st.spinner("Retrieving relevant code and metadata..."):
+            docs = rag_app.invoke({"input": query, "node": "Retrieve"})
+        with st.spinner("Summarizing context..."):
+            summary = rag_app.invoke({"input": docs, "node": "Summarize"})
+        with st.spinner("Generating answer..."):
+            answer = rag_app.invoke({"input": (docs, query), "node": "Answer"})
+        st.subheader("Summary")
+        st.code(summary)
+        st.subheader("Answer")
+        st.success(answer)
+        st.subheader("Retrieved Documents")
+        for i, doc in enumerate(docs, 1):
+            st.markdown(f"**Doc {i} ({doc.metadata.get('type')})**")
+            st.code(doc.page_content[:1000])
+else:
+    st.info("Please upload your code and click 'Build Index' before running the agent.")

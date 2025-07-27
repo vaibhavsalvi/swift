@@ -61,12 +61,27 @@ def extract_ast_info(file_path):
 # --- VECTORIZE & STORE ---
 def vectorize_and_store(project, file_path, code, ast_info, relationships, vector_db):
     """Vectorize code, AST, and relationships, and store in vector DB."""
+    import json
     docs = []
-    docs.append(Document(page_content=code, metadata={"project": project, "file": file_path, "type": "code"}))
+    # Always ensure page_content is a string
+    def safe_str(val):
+        if isinstance(val, str):
+            return val
+        try:
+            return json.dumps(val)
+        except Exception:
+            return str(val)
+
+    docs.append(Document(page_content=safe_str(code), metadata={"project": project, "file": file_path, "type": "code"}))
     if ast_info:
-        docs.append(Document(page_content=ast.dump(ast_info), metadata={"project": project, "file": file_path, "type": "ast"}))
+        docs.append(Document(page_content=safe_str(ast.dump(ast_info)), metadata={"project": project, "file": file_path, "type": "ast"}))
     if relationships:
-        docs.append(Document(page_content=str(relationships), metadata={"project": project, "file": file_path, "type": "relationships"}))
+        docs.append(Document(page_content=safe_str(relationships), metadata={"project": project, "file": file_path, "type": "relationships"}))
+    # Force all page_content to string and debug print if not
+    for d in docs:
+        if not isinstance(d.page_content, str):
+            print(f"[DEBUG] Forcing page_content to string. Was {type(d.page_content)} in file {file_path}, value: {d.page_content}")
+            d.page_content = str(d.page_content)
     vector_db.add_documents(docs)
 
 # --- MAIN PIPELINE ---
@@ -134,11 +149,9 @@ if __name__ == "__main__":
     # 3. Ask a question and get retrieval, summary, and answer
     question = "Which domain does the project 'my_project' fall under?"
     # Step 1: Retrieve relevant docs
-    docs = rag_app("Retrieve", question)
-    # Step 2: Summarize context
-    summary = rag_app("Summarize", docs)
-    # Step 3: Answer question using context
-    answer = rag_app("Answer", (docs, question))
+    docs = rag_app.invoke({"input": question, "node": "Retrieve"})
+    summary = rag_app.invoke({"input": docs, "node": "Summarize"})
+    answer = rag_app.invoke({"input": (docs, question), "node": "Answer"})
     print("Summary:\n", summary)
     print("Answer:\n", answer)
 
